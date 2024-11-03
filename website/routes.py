@@ -1,14 +1,18 @@
+import os
 import time
 from flask import Blueprint, request, session
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2 import OAuth2Error
+from authlib.oidc.core import UserInfo
 from .models import db, User, OAuth2Client
-from .oauth2 import authorization, require_oauth, generate_user_info
+from .oauth2 import authorization, require_oauth
+from .tnid import Tnid
 
 
-bp = Blueprint(__name__, 'home')
+bp = Blueprint('home', __name__)
+tnid = Tnid(os.environ['TNID_CLIENT_ID'], os.environ['TNID_CLIENT_SECRET'])
 
 
 def current_user():
@@ -73,19 +77,87 @@ def create_client():
     return redirect('/')
 
 
+# TODO: Store these in a database
+votes = {'red': 7, 'blue': 5, 'green': 3, 'yellow': 2}
+
+@bp.route('/poll', methods=['GET'])
+def poll():
+    if request.method == 'POST':
+        color = request.form.get('color')
+        if color in votes:
+            votes[color] += 1
+            session['vote'] = color
+    return render_template('poll.html', vote=session.get('vote'), votes=votes)
+    
+@bp.route('/vote', methods=['GET', 'POST'])
+def vote():
+    # Do we have a vote?
+    color = request.form.get('color', session.get('pending_vote'))
+    if color in votes:
+        # Are we logged in?
+        user = current_user()
+        if user is not None:
+            # Logged in - record vote
+            votes[color] += 1
+            session['vote'] = color
+            session.pop('pending_vote')
+        else:
+            # Not logged in - record pending vote and do authentication flow
+            session['pending_vote'] = color
+            return redirect('/oauth/authorize')
+    return redirect('/poll')
+    
+# For development
+@bp.route('/reset-vote', methods=['GET'])
+def reset_vote():
+    if 'vote' in session:
+        votes[session['vote']] -= 1
+    session.pop('vote')
+    return redirect('/poll')
+
+# For development
+@bp.route('/logout', methods=['GET'])
+def logout():
+    session.pop('id')
+    print(session['id'])
+    return redirect('/poll')
+
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
 def authorize():
     user = current_user()
+    if user is None:
+        username = request.form.get('username')
+        if username is not None:
+            user = User.query.filter_by(username=username).first()
+            if not user:
+                user = User(username=username)
+                db.session.add(user)
+                db.session.commit()
+            if not tnid.invite(username):
+                # Authentication failed
+                return render_template('authorize.html')
+            session['id'] = user.id
+            # TODO: Remove hack to run on single server
+            return redirect('/vote')
     if request.method == 'GET':
         try:
-            grant = authorization.validate_consent_request(end_user=user)
+            grant = authorization.get_consent_grant(end_user=user)
         except OAuth2Error as error:
-            return jsonify(dict(error.get_body()))
+            # TODO: Remove hack to run on single server
+            # return jsonify(dict(error.get_body()))
+            class MyClient:
+                client_name = 'TNID Voting App'
+            class MyRequest:
+                scope = 'openid profile'
+            class MyGrant:
+                client = MyClient()
+                request = MyRequest()
+            grant = MyGrant()
         return render_template('authorize.html', user=user, grant=grant)
     if not user and 'username' in request.form:
         username = request.form.get('username')
         user = User.query.filter_by(username=username).first()
-    if request.form['confirm']:
+    if request.form['confirm'] == 'on':
         grant_user = user
     else:
         grant_user = None
@@ -98,6 +170,9 @@ def issue_token():
 
 
 @bp.route('/oauth/userinfo')
-@require_oauth('profile')
+#@require_oauth('profile')
 def api_me():
-    return jsonify(generate_user_info(current_token.user, current_token.scope))
+    # TODO: Remove hack to run on single server
+    #user = current_token.user
+    user = current_user()
+    return jsonify(UserInfo(sub=str(user.id), phone_number=user.username, phone_number_verified=True))

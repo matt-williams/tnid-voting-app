@@ -1,0 +1,74 @@
+<h1>Poll</h1>
+<p>What is your favorite color?</p>
+{% if not vote %}
+<form action="/vote" method="post">
+  <div>
+    <label>
+      <input type="radio" name="color" value="red">
+      <span style="color: red">Red<span>
+    </label>
+  </div>
+  <div>
+    <label>
+      <input type="radio" name="color" value="blue">
+      <span style="color: blue">Blue<span>
+    </label>
+  </div>
+  <div>
+    <label>
+      <input type="radio" name="color" value="green">
+      <span style="color: green">Green<span>
+    </label>
+  </div>
+  <div>
+    <label>
+      <input type="radio" name="color" value="yellow">
+      <span style="color: yellow">Yellow<span>
+    </label>
+  </div>
+  <div>
+    <button>Submit</button>
+  </div>
+</form>
+{% else %}
+<div>
+  <label>
+    {% if vote == 'red' %}
+    <input type="radio" name="color" value="red" disabled checked>
+    {% else %}
+    <input type="radio" name="color" value="red" disabled>
+    {% endif %}
+    <span style="color: red">Red ({{votes['red']}})<span>
+  </label>
+</div>
+<div>
+  <label>
+    {% if vote == 'blue' %}
+    <input type="radio" name="color" value="blue" disabled checked>
+    {% else %}
+    <input type="radio" name="color" value="blue" disabled>
+    {% endif %}
+    <span style="color: blue">Blue ({{votes['blue']}})<span>
+  </label>
+</div>
+<div>
+  <label>
+    {% if vote == 'green' %}
+    <input type="radio" name="color" value="green" disabled checked>
+    {% else %}
+    <input type="radio" name="color" value="green" disabled>
+    {% endif %}
+    <span style="color: green">Green ({{votes['green']}})<span>
+  </label>
+</div>
+<div>
+  <label>
+    {% if vote == 'yellow' %}
+    <input type="radio" name="color" value="yellow" disabled checked>
+    {% else %}
+    <input type="radio" name="color" value="yellow" disabled>
+    {% endif %}
+    <span style="color: yellow">Yellow ({{votes['yellow']}})<span>
+  </label>
+</div>
+{% endif %}

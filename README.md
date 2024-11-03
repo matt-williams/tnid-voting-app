@@ -1,16 +1,10 @@
-# Example of OpenID Connect 1.0 Provider
+# TNID OpenID Connect Voting App
 
-This is an example of OpenID Connect 1.0 server in Flask and [Authlib](https://authlib.org/).
+Heavily based on [example-oidc-server](https://github.com/authlib/example-oidc-server).
 
-- Documentation: <https://docs.authlib.org/en/latest/flask/2/>
-- Authlib Repo: <https://github.com/lepture/authlib>
+## Running
 
----
-
-## Take a quick look
-
-This is a ready to run example, let's take a quick experience at first. To
-run the example, we need to install all the dependencies:
+Install dependencies:
 
     $ pip install -r requirements.txt
 
@@ -24,35 +18,6 @@ Create Database and run the development server:
     $ flask initdb
     $ flask run
 
-Now, you can open your browser with `http://127.0.0.1:5000/`, login with any
-name you want.
+Now browse to `http://127.0.0.1:5000/poll`.
 
-Before testing, we need to create a client:
-
-![create a client](https://user-images.githubusercontent.com/290496/64176341-35888100-ce98-11e9-8395-fd4cdc029fd2.png)
-
-**NOTE: YOU MUST ADD `openid` SCOPE IN YOUR CLIENT**
-
-Let's take `authorization_code` grant type as an example. Visit:
-
-```
-http://127.0.0.1:5000/oauth/authorize?client_id=${CLIENT_ID}&scope=openid+profile&response_type=code&nonce=abc
-```
-
-After that, you will be redirect to a URL. For instance:
-
-```
-https://example.com/?code=RSv6j745Ri0DhBSvi2RQu5JKpIVvLm8SFd5ObjOZZSijohe0
-```
-
-Copy the code value, use `curl` to get the access token:
-
-```
-curl -u "${CLIENT_ID}:${CLIENT_SECRET}" -XPOST http://127.0.0.1:5000/oauth/token -F grant_type=authorization_code -F code=RSv6j745Ri0DhBSvi2RQu5JKpIVvLm8SFd5ObjOZZSijohe0
-```
-
-Now you can access the userinfo endpoint:
-
-```bash
-$ curl -H "Authorization: Bearer ${access_token}" http://127.0.0.1:5000/oauth/userinfo
-```
+To check the OpenID user profile, browse to `http://127.0.0.1:5000/oauth/userinfo`
